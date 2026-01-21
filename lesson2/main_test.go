@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -37,6 +38,9 @@ func TestCircularQueue(t *testing.T) {
 	assert.False(t, queue.Empty())
 	assert.False(t, queue.Full())
 	assert.True(t, queue.Push(4))
+
+	queue.Debug()
+	fmt.Println(queue.Empty())
 
 	assert.True(t, reflect.DeepEqual([]int{4, 2, 3}, queue.values))
 

@@ -1,21 +1,22 @@
 package main
 
+import "fmt"
+
 type CircularQueue struct {
-	values   []int
-	length   int
-	capacity int
-	readIdx  int
-	writeIdx int
+	values    []int
+	readIndex int
+	length    int
 }
 
 func NewCircularQueue(size int) CircularQueue {
-	q := CircularQueue{
-		values:   make([]int, size, size),
-		length:   0,
-		capacity: size,
-		writeIdx: 0,
-		readIdx:  0,
+	if size <= 0 {
+		panic("Size should be > 0")
 	}
+
+	q := CircularQueue{
+		values: make([]int, size),
+	}
+
 	return q
 }
 
@@ -24,13 +25,7 @@ func (q *CircularQueue) Push(value int) bool {
 		return false
 	}
 
-	q.values[q.writeIdx] = value
-
-	q.writeIdx++
-	if q.writeIdx > q.capacity-1 {
-		q.writeIdx = 0
-	}
-
+	q.values[(q.readIndex+q.length)%cap(q.values)] = value
 	q.length++
 
 	return true
@@ -41,13 +36,7 @@ func (q *CircularQueue) Pop() bool {
 		return false
 	}
 
-	q.values[q.readIdx] = 0
-
-	q.readIdx++
-	if q.readIdx > q.capacity-1 {
-		q.readIdx = 0
-	}
-
+	q.readIndex = (q.readIndex + 1) % cap(q.values)
 	q.length--
 
 	return true
@@ -57,38 +46,63 @@ func (q *CircularQueue) Front() int {
 	if q.Empty() {
 		return -1
 	}
-	return q.values[q.readIdx]
+
+	return q.values[q.readIndex]
 }
 
 func (q *CircularQueue) Back() int {
 	if q.Empty() {
 		return -1
 	}
-	idx := (q.writeIdx - 1 + q.capacity) % q.capacity // it's too tricky, I broke my brain
+
+	idx := (q.length + q.readIndex - 1) % cap(q.values)
+
 	return q.values[idx]
 }
 
 func (q *CircularQueue) Empty() bool {
-	return q.length <= 0
+	return q.length == 0
 }
 
 func (q *CircularQueue) Full() bool {
-	return q.length == q.capacity
+	return q.length == cap(q.values)
+}
+
+func (q *CircularQueue) Debug() {
+	fmt.Println(q.values, cap(q.values), q.readIndex, q.length)
 }
 
 func main() {
 	q := NewCircularQueue(3)
+	q.Debug()
+
 	q.Push(1)
+	q.Debug()
+
 	q.Push(2)
+	q.Debug()
+
 	q.Push(3)
+	q.Debug()
 
 	q.Push(4) // nope
-	q.Front() // 1
-	q.Back() // 3
+	q.Debug()
+
+	fmt.Println(q.Front()) // 1
+	q.Debug()
+
+	fmt.Println(q.Back()) // 3
+	q.Debug()
 
 	q.Pop()
-	q.Pop()
-	q.Pop()
+	q.Debug()
 
-	q.Empty() // true 
+	q.Pop()
+	q.Debug()
+
+	q.Pop()
+	q.Debug()
+
+	q.Empty() // true
+	q.Debug()
 }
