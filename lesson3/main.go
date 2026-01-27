@@ -27,11 +27,10 @@ func (b *COWBuffer) Clone() COWBuffer {
 
 	newCow := COWBuffer{
 		data: b.data,
-		refs: new(int),
+		refs: b.refs,
 	}
 
-	*newCow.refs = 1
-	*b.refs++
+	*newCow.refs++
 
 	return newCow
 }
@@ -41,6 +40,7 @@ func (b *COWBuffer) Close() {
 		panic("Closed COWBuffer can't be closed.")
 	}
 
+	*b.refs--
 	b.data = nil
 	b.refs = nil
 }
@@ -55,10 +55,14 @@ func (b *COWBuffer) Update(index int, value byte) bool {
 	}
 
 	if *b.refs > 1 {
-		*b.refs--
-		old := b.data
+		*b.refs-- // decrement
+
+		old := b.data // copy underlying array
 		b.data = make([]byte, len(old))
 		copy(b.data, old)
+
+		b.refs = new(int) // new element is only one
+		*b.refs = 1
 	}
 
 	b.data[index] = value
@@ -79,22 +83,33 @@ func (b *COWBuffer) Debug() {
 		panic("Can't debug closed buffer.")
 	}
 
-	fmt.Println("data:", string(b.data), "refs:", b.refs, "refs p", *b.refs)
+	fmt.Println("data:", string(b.data), "dataptr:", unsafe.SliceData(b.data), "refs:", b.refs, "refs p", *b.refs)
 }
 
 func main() {
 	c := NewCOWBuffer([]byte("hello"))
-	c.Debug()
-
-	c.Update(0, 'A')
-	c.Debug()
-
+	c1 := c.Clone()
 	c2 := c.Clone()
-	c.Debug()
+	c3 := c.Clone()
+	// c2.Update(2, 'B')
+	c1.Debug()
+	c2.Debug()
+	c3.Debug()
+	c3.Update(0, 'A')
+	c3.Debug()
+	c2.Debug()
 
-	c2.Update(2, 'B')
-	c.Debug()
-
-	c.Close()
-	c.Debug() // panic (it's ok)
+	// c.Debug()
+	//
+	// c.Update(0, 'A')
+	// c.Debug()
+	//
+	// c2 := c.Clone()
+	// c.Debug()
+	//
+	// c2.Update(2, 'B')
+	// c.Debug()
+	//
+	// c.Close()
+	// c.Debug() // panic (it's ok)
 }

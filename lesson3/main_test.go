@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -44,6 +45,8 @@ func TestCOWBuffer(t *testing.T) {
 	previous := copy2.data
 	copy2.Update(0, 'f')
 	current := copy2.data
+
+	fmt.Println(unsafe.SliceData(previous), unsafe.SliceData(current))
 
 	// 1 reference - don't need to copy buffer during update
 	assert.Equal(t, unsafe.SliceData(previous), unsafe.SliceData(current))
