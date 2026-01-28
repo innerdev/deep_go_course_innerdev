@@ -7,6 +7,10 @@ func Map(data []int, action func(int) int) []int {
 		return nil
 	}
 
+	if len(data) <= 0 {
+		return []int{}
+	}
+
 	result := make([]int, 0, len(data))
 	for _, value := range data {
 		result = append(result, action(value))
@@ -19,7 +23,12 @@ func Filter(data []int, action func(int) bool) []int {
 		return nil
 	}
 
+	if len(data) <= 0 {
+		return []int{}
+	}
+
 	result := make([]int, 0)
+
 	for _, value := range data {
 		if action(value) {
 			result = append(result, value)
