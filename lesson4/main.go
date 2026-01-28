@@ -16,16 +16,171 @@ type node struct {
 	value int
 }
 
-// CONSTRUCT ------------------------------------------------
-
 func NewOrderedMap() OrderedMap {
-	return OrderedMap{
-		root: nil,
-		size: 0,
+	return OrderedMap{}
+}
+
+func (m *OrderedMap) Insert (key, value int) {
+	m.root = m.insert(m.root, key, value)
+}
+
+func (m *OrderedMap) insert(n *node, key, value int) *node {
+	if n == nil {
+		m.size++
+		return &node{
+			key: key,
+			value: value,
+		}
+	}
+
+	if key == n.key {
+		n.value = value
+	}
+
+	if key > n.key {
+		n.right = m.insert(n.right, key, value)
+	}
+
+	if key < n.key {
+		n.left = m.insert(n.left, key, value)
+	}
+
+	return n
+}
+
+func (m *OrderedMap) Contains (key int) bool {
+	isFound := m.contains(m.root, key)
+	return isFound
+}
+
+func (m *OrderedMap) contains(n *node, key int) bool {
+	if n == nil {
+		return false
+	}
+
+	if key == n.key {
+		return true
+	}
+
+	if key > n.key {
+		return m.contains(n.right, key)
+	}
+
+	return m.contains(n.left, key)
+}
+
+func (m *OrderedMap) Erase(key int) {
+	m.root = m.erase(m.root, key)
+}
+
+func (m *OrderedMap) erase(n *node, key int) *node {
+	if n == nil {
+		return nil
+	}
+
+	if key < n.key {
+		n.left = m.erase(n.left, key)
+	}
+
+	if key > n.key {
+		n.right = m.erase(n.right, key)
+	}
+
+	// no childs
+	if key == n.key && n.left == nil && n.right == nil {
+		m.size--
+		return nil
+	}
+
+	// one child (left or right)
+	if key == n.key && n.left == nil && n.right != nil {
+		m.size--
+		return n.right
+	}
+
+	if key == n.key && n.left != nil && n.right == nil {
+		m.size--
+		return n.left
+	}
+
+	// two childs
+	if key == n.key && n.left != nil && n.right != nil {
+		m.size--
+		minInRightSubtree := minNode(n.right)
+		n.key = minInRightSubtree.key // "replace" erasing node with min node
+		n.value = minInRightSubtree.value
+		n.right = m.erase(n.right, minInRightSubtree.key) // remove min node
+	}
+
+	return n
+}
+
+func minNode(n *node) *node {
+	for n.left != nil {
+		n = n.left
+	}
+	return n
+}
+
+func (m *OrderedMap) ForEach(action func(int, int)) {
+	m.traversal(m.root, action)
+}
+
+func (m *OrderedMap) traversal(n *node, action func(int, int)) {
+	if n != nil {
+		m.traversal(n.left, action)
+		action(n.key, n.value)
+		m.traversal(n.right, action)
 	}
 }
 
-// INSERT ---------------------------------------------------
+func (m *OrderedMap) Size() int {
+	return m.size
+}
+
+func (m *OrderedMap) Debug() [][2]int {
+	var nodeData [][2]int
+	m.ForEach(func(key, value int) {
+		nodeData = append(nodeData, [2]int{key, value})
+	})
+	fmt.Println(nodeData)
+	return nodeData
+}
+
+
+func main() {
+	m := NewOrderedMap()
+	m.Insert(10, 10)
+	m.Insert(4, 4)
+	m.Insert(5, 5)
+	m.Insert(2, 2)
+	m.Insert(20, 20)
+	m.Insert(18, 18)
+	m.Insert(22, 22)
+	m.Insert(16, 16)
+	m.Insert(14, 14)
+
+	m.Debug()
+	// m.Insert(18, 18)
+
+	// fmt.Println(m.Contains(14))
+	// fmt.Println(m.Contains(20))
+	// m.Erase(12)
+	m.Erase(18)
+	m.Debug()
+
+	// m.Insert(2, 2)
+	// m.Insert(3, 3)
+	// fmt.Println(m.Contains(2)) // true
+	// fmt.Println(m.Contains(4)) // false
+	// m.Erase(2)
+	// fmt.Println(m.Contains(2)) // false
+	// m.Debug()
+}
+
+
+/* Ugly double pointer implementation:
+
 
 func (t *OrderedMap) Insert (key, value int) {
 	t.insertRecursively(&t.root, key, value)	
@@ -55,7 +210,6 @@ func (m *OrderedMap) insertRecursively(n **node, key, value int) {
 	}
 }
 
-// SEARCH ----------------------------------------------------
 
 func (m *OrderedMap) Contains (key int) bool {
 	_, _, isFound := m.searchNodeRecursively(&m.root, nil, key)
@@ -83,8 +237,6 @@ func (m *OrderedMap) searchNodeRecursively(n **node, parent **node, key int) (**
 	return nil, nil, false
 }
 
-// TREE TRAVERSAL -------------------------------------------
-
 func (m *OrderedMap) ForEach(action func(int, int)) {
 	m.traversal(m.root, action)	
 }
@@ -98,8 +250,6 @@ func (m *OrderedMap) traversal(n *node, action func(int, int)) {
 		m.traversal(n.right, action)
 	}
 }
-
-// DELETE --------------------------------------------------
 
 func (m *OrderedMap) Erase(key int) {
 	node, parent, isFound := m.searchNodeRecursively(&m.root, nil, key)
@@ -168,13 +318,9 @@ func (m *OrderedMap) findMinNode(n **node) **node {
 	return nil
 }
 
-// SIZE -----------------------------------------------------------------------------------------------------------
-
 func (t *OrderedMap) Size() int {
 	return t.size
 }
-
-// DEBUG -----------------------------------------------------------------------------------------------------------
 
 func (m *OrderedMap) Debug() {
 	var keys []int
@@ -184,17 +330,4 @@ func (m *OrderedMap) Debug() {
 
 	fmt.Println(keys, len(keys))
 }
-
-// MAIN -----------------------------------------------------------------------------------------------------------
-
-func main() {
-	m := NewOrderedMap()
-	m.Insert(1, 1)
-	m.Insert(2, 2)
-	m.Insert(3, 3)
-	fmt.Println(m.Contains(2)) // true
-	fmt.Println(m.Contains(4)) // false
-	m.Erase(2)
-	fmt.Println(m.Contains(2)) // false
-	m.Debug()
-}
+*/
