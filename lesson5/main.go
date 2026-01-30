@@ -3,12 +3,8 @@ package main
 import "fmt"
 
 func Map(data []int, action func(int) int) []int {
-	if data == nil {
-		return nil
-	}
-
 	if len(data) <= 0 {
-		return []int{}
+		return data
 	}
 
 	result := make([]int, 0, len(data))
@@ -19,12 +15,8 @@ func Map(data []int, action func(int) int) []int {
 }
 
 func Filter(data []int, action func(int) bool) []int {
-	if data == nil {
-		return nil
-	}
-
 	if len(data) <= 0 {
-		return []int{}
+		return data
 	}
 
 	result := make([]int, 0)
