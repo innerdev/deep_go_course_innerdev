@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"unsafe"
 )
@@ -16,10 +15,64 @@ const (
 )
 
 const (
-	MaxCharsInName = 42
+	minX = math.MinInt32
+	maxX = math.MaxInt32
+
+	minY = math.MinInt32
+	maxY = math.MaxInt32
+
+	minZ = math.MinInt32
+	maxZ = math.MaxInt32
+
+	minGold = 0
+	maxGold = math.MaxUint32
+
+	minMana = 0
+	maxMana = 1000
+
+	minHealth = 0
+	maxHealth = 1000
+
+	minRespect = 0
+	maxRespect = 10
+
+	minStrength = 0
+	maxStrength = 10
+
+	minExperience = 0
+	maxExperience = 10
+
+	minLevel = 0
+	maxLevel = 10
+
+	nameMaxChars = 42
 )
 
-type Name = [MaxCharsInName]byte
+const (
+	manaBitsShift       = 0
+	healthBitsShift     = 10
+	respectBitsShift    = 20
+	strengthBitsShift   = 24
+	houseBitsShift      = 28
+	gunBitsShift        = 29
+	familyBitsShift     = 30
+
+	experienceBitsShift = 0
+	levelBitsShift      = 4
+)
+
+const (
+	manaMask       = (1 << 10) - 1
+	healthMask     = (1 << 10) - 1
+	respectMask    = (1 << 4) - 1
+	strengthMask   = (1 << 4) - 1
+	experienceMask = (1 << 4) - 1
+	levelMask      = (1 << 4) - 1
+)
+
+const (
+	bitTrue = 1
+)
 
 type GamePerson struct { // 64 bytes exectly
 	x    int32
@@ -46,23 +99,12 @@ type GamePerson struct { // 64 bytes exectly
 
 	personType uint8
 
-	name Name
+	name [42]byte
 }
 
 func main() {
-	const x, y, z = math.MinInt32, math.MaxInt32, 0
-	const name = "aaaaaaaaaaaaa_bbbbbbbbbbbbb_cccccccccccccc"
-	const personType = BuilderGamePersonType
-	const gold = math.MaxInt32
-	const mana = 1000
-	const health = 1000
-	const respect = 10
-	const strength = 10
-	const experience = 10
-	const level = 10
-
 	options := []Option{
-		WithName("Вася Terminator3000 Ватрушкин"),
+		WithName("__Terminator3000__"),
 		WithCoordinates(math.MinInt32, math.MaxInt32, 0),
 		WithGold(math.MaxInt32),
 		WithMana(1000),
@@ -74,7 +116,7 @@ func main() {
 		WithHouse(),
 		WithFamily(),
 		WithGun(),
-		WithType(personType),
+		WithType(BuilderGamePersonType),
 	}
 
 	gp := NewGamePerson(options...)
@@ -97,28 +139,27 @@ func WithName(name string) func(*GamePerson) {
 		panic("Person name can not be empty.")
 	}
 
-	return func(person *GamePerson) {
-		// only latin symbols and '_' are allowed
-		var j int
-		for i, s := range name {
-			if (s >= 'A' && s <= 'Z') || (s >= 'a' && s <= 'z') || s == '_' {
-				person.name[j] = byte(s)
-				j++
-				if j >= MaxCharsInName {
-					break // no panic, just trim
-				}
-			} else {
-				log.Println("Warning: name symbol", s, "on position", i, "is not a latin symbol and skipped.")
-			}
+	for _, s := range name {
+		if s > 'z' {
+			panic("Non-latin symbols are not allowed in name.")
 		}
+	}
 
+	if len(name) > nameMaxChars {
+		panic("Person name's length can't be greater then 42 symbols.")
+	}
+
+	return func(person *GamePerson) {
+		for i, s := range name {
+			person.name[i] = byte(s)
+		}
 	}
 }
 
 func WithCoordinates(x, y, z int) func(*GamePerson) {
-	if x < math.MinInt32 || x > math.MaxInt32 ||
-		y < math.MinInt32 || y > math.MaxInt32 ||
-		z < math.MinInt32 || z > math.MaxInt32 {
+	if x < minX || x > maxX ||
+		y < minY || y > maxY ||
+		z < minZ || z > maxZ {
 		panic("X, Y or Z does not meet the requirements")
 	}
 
@@ -130,7 +171,7 @@ func WithCoordinates(x, y, z int) func(*GamePerson) {
 }
 
 func WithGold(gold int) func(*GamePerson) {
-	if gold < 0 || gold > math.MaxUint32 {
+	if gold < minGold || gold > maxGold {
 		panic("Gold does not meet the requirements")
 	}
 
@@ -140,84 +181,86 @@ func WithGold(gold int) func(*GamePerson) {
 }
 
 func WithMana(mana int) func(*GamePerson) {
-	if mana < 0 || mana > 1000 {
+	if mana < minMana || mana > maxMana {
 		panic("Mana does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(mana) << 0)
+		person.set1 = person.set1 | (uint32(mana) << manaBitsShift)
 	}
 }
 func WithHealth(health int) func(*GamePerson) {
-	if health < 0 || health > 1000 {
+	if health < minHealth || health > maxHealth {
 		panic("Health does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(health) << 10)
+		person.set1 = person.set1 | (uint32(health) << healthBitsShift)
 	}
 }
 
 func WithRespect(respect int) func(*GamePerson) {
-	if respect < 0 || respect > 10 {
+	if respect < minRespect || respect > maxRespect {
 		panic("Respect does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(respect) << 20)
+		person.set1 = person.set1 | (uint32(respect) << respectBitsShift)
 	}
 }
 
 func WithStrength(strength int) func(*GamePerson) {
-	if strength < 0 || strength > 10 {
+	if strength < minStrength || strength > maxStrength {
 		panic("Strength does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(strength) << 24)
+		person.set1 = person.set1 | (uint32(strength) << strengthBitsShift)
 	}
 }
 
 func WithExperience(experience int) func(*GamePerson) {
-	if experience < 0 || experience > 10 {
+	if experience < minExperience || experience > maxExperience {
 		panic("Experience does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set2 = person.set2 | (uint8(experience) << 0)
+		person.set2 = person.set2 | (uint8(experience) << experienceBitsShift)
 	}
 }
 
 func WithLevel(level int) func(*GamePerson) {
-	if level < 0 || level > 10 {
+	if level < minLevel || level > maxLevel {
 		panic("Level does not meet the requirements")
 	}
 
 	return func(person *GamePerson) {
-		person.set2 = person.set2 | (uint8(level) << 4)
+		person.set2 = person.set2 | (uint8(level) << levelBitsShift)
 	}
 }
 
 func WithHouse() func(*GamePerson) {
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(1) << 28)
+		person.set1 = person.set1 | (uint32(bitTrue) << houseBitsShift)
 	}
 }
 
 func WithGun() func(*GamePerson) {
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(1) << 29)
+		person.set1 = person.set1 | (uint32(bitTrue) << gunBitsShift)
 	}
 }
 
 func WithFamily() func(*GamePerson) {
 	return func(person *GamePerson) {
-		person.set1 = person.set1 | (uint32(1) << 30)
+		person.set1 = person.set1 | (uint32(bitTrue) << familyBitsShift)
 	}
 }
 
 func WithType(personType int) func(*GamePerson) {
-	if personType < 0 || personType > 3 {
+	if personType != BuilderGamePersonType &&
+		personType != BlacksmithGamePersonType &&
+		personType != WarriorGamePersonType {
 		panic("Person Type does not meet the requirements")
 	}
 	return func(person *GamePerson) {
@@ -226,9 +269,9 @@ func WithType(personType int) func(*GamePerson) {
 }
 
 func (p *GamePerson) Name() string {
-	name := make([]rune, len(p.name))
-	for i := 0; i < len(p.name); i++ {
-		name[i] = rune(p.name[i])
+	name := make([]rune, 0, len(p.name))
+	for _, s := range p.name {
+		name = append(name, rune(s))
 	}
 	return string(name)
 }
@@ -250,48 +293,48 @@ func (p *GamePerson) Gold() int {
 }
 
 func (p *GamePerson) Mana() int {
-	return int((p.set1 >> 0) & uint32((1<<10)-1))
+	return int((p.set1 >> manaBitsShift) & uint32(manaMask))
 }
 
 func (p *GamePerson) Health() int {
-	return int((p.set1 >> 10) & uint32((1<<10)-1))
+	return int((p.set1 >> healthBitsShift) & uint32(healthMask))
 }
 
 func (p *GamePerson) Respect() int {
-	return int((p.set1 >> 20) & uint32((1<<4)-1))
+	return int((p.set1 >> respectBitsShift) & uint32(respectMask))
 }
 
 func (p *GamePerson) Strength() int {
-	return int((p.set1 >> 24) & uint32((1<<4)-1))
+	return int((p.set1 >> strengthBitsShift) & uint32(strengthMask))
 }
 
 func (p *GamePerson) Experience() int {
-	return int((p.set2 >> 0) & uint8((1<<4)-1))
+	return int((p.set2 >> experienceBitsShift) & uint8(experienceMask))
 }
 
 func (p *GamePerson) Level() int {
-	return int((p.set2 >> 4) & uint8((1<<4)-1))
+	return int((p.set2 >> levelBitsShift) & uint8(levelMask))
 }
 
 func (p *GamePerson) HasHouse() bool {
-	has := int(((p.set1 >> 28) & uint32(1)))
-	if has == 1 {
+	has := int(((p.set1 >> houseBitsShift) & uint32(bitTrue)))
+	if has == bitTrue {
 		return true
 	}
 	return false
 }
 
 func (p *GamePerson) HasGun() bool {
-	has := int(((p.set1 >> 29) & uint32(1)))
-	if has == 1 {
+	has := int(((p.set1 >> gunBitsShift) & uint32(bitTrue)))
+	if has == bitTrue {
 		return true
 	}
 	return false
 }
 
 func (p *GamePerson) HasFamilty() bool {
-	has := int(((p.set1 >> 30) & uint32(1)))
-	if has == 1 {
+	has := int(((p.set1 >> familyBitsShift) & uint32(bitTrue)))
+	if has == bitTrue {
 		return true
 	}
 	return false
