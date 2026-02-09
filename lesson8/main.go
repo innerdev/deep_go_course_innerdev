@@ -31,22 +31,22 @@ func (e *MultiError) Error() string {
 }
 
 func Append(err error, errs ...error) *MultiError {
-	switch err.(type) {
-	case *MultiError:
-		err.(*MultiError).Errors = append(err.(*MultiError).Errors, errs...)
-		return err.(*MultiError)
-	default:
-		me := &MultiError{
-			Errors: make([]error, 0),
-		}
-
-		if err != nil {
-			me.Errors = append(me.Errors, err)
-		}
-
+	if me, ok := err.(*MultiError); ok {
 		me.Errors = append(me.Errors, errs...)
 		return me
 	}
+
+	me := &MultiError{
+		Errors: make([]error, 0),
+	}
+
+	if err != nil {
+		me.Errors = append(me.Errors, err)
+	}
+
+	me.Errors = append(me.Errors, errs...)
+
+	return me
 }
 
 func main() {
