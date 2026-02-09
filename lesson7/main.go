@@ -10,26 +10,28 @@ type Container struct {
 
 func NewContainer() *Container {
 	return &Container{
-		classes: make(map[string]interface{}, 0),
+		classes: make(map[string]interface{}),
 	}
 }
 
 func (c *Container) RegisterType(name string, constructor interface{}) {
-	if name != "" && constructor != nil {
-		c.classes[name] = constructor
+	if name == "" || constructor == nil {
+		return
 	}
+
+	constructor, ok := constructor.(func() interface{})
+	if ok != true {
+		return
+	}
+
+	c.classes[name] = constructor
 }
 
 func (c *Container) Resolve(name string) (interface{}, error) {
-	pureConstructor, isFound := c.classes[name]
+	constructor, isFound := c.classes[name]
 	if isFound == false {
 		return nil, errors.New("Class is not found")
 	}
 
-	constructor, ok := pureConstructor.(func() interface{})
-	if ok != true {
-		return nil, errors.New("Class constructor does not follow the contract")
-	}
-
-	return constructor(), nil
+	return constructor.(func() interface{})(), nil
 }
