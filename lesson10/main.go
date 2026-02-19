@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"unsafe"
 )
 
-func findFirstFreeByte(memory []byte, pointers []unsafe.Pointer) (memoryIndex int, err error) {
+func findFirstFreeByte(memory []byte, pointers []unsafe.Pointer) (memoryIndex int, noFreeMemoryLeft bool) {
 	for i := 0; i < len(memory); i++ {
 		isFree := true
 
@@ -17,36 +16,36 @@ func findFirstFreeByte(memory []byte, pointers []unsafe.Pointer) (memoryIndex in
 		}
 
 		if isFree {
-			return i, nil
+			return i, false
 		}
 	}
 
-	return 0, errors.New("no free memory left")
+	return 0, true
 }
 
-func findFirstUsedByte(memory []byte, pointers []unsafe.Pointer, memoryStartSearchIndex int) (memoryIndex, pointerIndex int, err error) {
+func findFirstUsedByte(memory []byte, pointers []unsafe.Pointer, memoryStartSearchIndex int) (memoryIndex, pointerIndex int, noUsedMemoryFound bool) {
 	for i := memoryStartSearchIndex; i < len(memory); i++ {
 		for j := 0; j < len(pointers); j++ {
 			if &memory[i] == (*byte)(pointers[j]) {
-				return i, j, nil
+				return i, j, false
 			}
 		}
 	}
 
 	// if we are here, no used bytes after `memoryStartSearchIndex` are found
-	return 0, 0, errors.New("no used bytes found")
+	return 0, 0, true
 }
 
 func Defragment(memory []byte, pointers []unsafe.Pointer) {
 	for {
-		freeIndex, err := findFirstFreeByte(memory, pointers)
-		if err != nil {
-			return // no need in defragmentation because of memory if full
+		freeIndex, noFreeMemoryLeft := findFirstFreeByte(memory, pointers)
+		if noFreeMemoryLeft {
+			return
 		}
 
-		usedIndex, pointerIndex, err := findFirstUsedByte(memory, pointers, freeIndex)
-		if err != nil {
-			return // no need in defragmentation because of no bytes are in use (after `freeIndex`)
+		usedIndex, pointerIndex, noUsedMemoryFound := findFirstUsedByte(memory, pointers, freeIndex)
+		if noUsedMemoryFound {
+			return
 		}
 
 		memory[freeIndex] = memory[usedIndex]
@@ -88,6 +87,7 @@ func findFirstFreeByte(memory []byte, pointers []unsafe.Pointer) (memoryIndex in
 	for i := range memory {
 		isFree := true
 
+		// TODO range uses copy!!!
 		for j := range pointers{
 			if &memory[i] == (*byte)(pointers[j]) {
 				isFree = false
