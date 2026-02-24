@@ -13,7 +13,7 @@ func TestTrace(t *testing.T) {
 	task4 := Task{Identifier: 4, Priority: 40}
 	task5 := Task{Identifier: 5, Priority: 50}
 
-	scheduler := NewScheduler()
+	scheduler := NewScheduler(NewHeap())
 	scheduler.AddTask(task1)
 	scheduler.AddTask(task2)
 	scheduler.AddTask(task3)
@@ -29,7 +29,7 @@ func TestTrace(t *testing.T) {
 	scheduler.ChangeTaskPriority(1, 100)
 
 	task = scheduler.GetTask()
-	assert.Equal(t, Task{Identifier: 1, Priority: 100}, task)
+	assert.Equal(t, task1, task)
 
 	task = scheduler.GetTask()
 	assert.Equal(t, task3, task)
